@@ -1,0 +1,28 @@
+{
+  "_note": "Labelled URLs for tuning the drafting/scoring rubric. expect: publish | review | reject. Dead links are reported and should be replaced. Run: npm run pipeline -- eval [--discover]",
+  "urls": [
+    { "url": "https://linear.app/now/how-we-redesigned-the-linear-ui", "expect": "publish", "why": "Company's own in-depth redesign write-up" },
+    { "url": "https://airbnb.design/building-a-visual-language/", "expect": "publish", "why": "Landmark design system write-up (older but notable)" },
+    { "url": "https://spotify.design/article/reimagining-design-systems-at-spotify", "expect": "publish", "why": "Design system process at Spotify" },
+    { "url": "https://stripe.com/blog/connect-front-end-experience", "expect": "review", "why": "Engineering-led UI post from Stripe; design content may be thin" },
+    { "url": "https://www.figma.com/blog/behind-our-redesign-ui3/", "expect": "publish", "why": "Figma's own redesign story" },
+    { "url": "https://github.blog/engineering/user-experience/", "expect": "reject", "why": "Category index page, not a single piece of work" },
+    { "url": "https://www.pentagram.com/work/mastercard", "expect": "review", "why": "Agency case study for a named client; short copy" },
+    { "url": "https://www.underconsideration.com/brandnew/archives/new_logo_and_identity_for_mastercard_by_pentagram.php", "expect": "publish", "why": "Brand New review of a real rebrand" },
+    { "url": "https://ux.shopify.com/", "expect": "reject", "why": "Publication homepage, not a single entry" },
+    { "url": "https://www.dropbox.com/brand", "expect": "review", "why": "Brand guidelines site; real work but reference material" },
+    { "url": "https://material.io/blog/material-you-design-system", "expect": "review", "why": "Google announcing Material You" },
+    { "url": "https://www.intercom.com/blog/the-intercom-messenger-redesign/", "expect": "publish", "why": "Product redesign write-up" },
+    { "url": "https://www.nngroup.com/articles/ten-usability-heuristics/", "expect": "reject", "why": "Generic advice, no company work" },
+    { "url": "https://lawsofux.com/", "expect": "reject", "why": "Generic reference site" },
+    { "url": "https://www.figma.com/pricing/", "expect": "reject", "why": "Tool marketing" },
+    { "url": "https://en.wikipedia.org/wiki/Graphic_design", "expect": "reject", "why": "Encyclopedia article" },
+    { "url": "https://www.smashingmagazine.com/2021/05/frustrating-design-patterns-mega-dropdown-hover-menus/", "expect": "reject", "why": "Generic pattern advice" },
+    { "url": "https://www.canva.com/learn/logo-design-tips/", "expect": "reject", "why": "Listicle / tool marketing" },
+    { "url": "https://uxplanet.org/top-10-ui-design-trends-2024", "expect": "reject", "why": "Trends listicle" },
+    { "url": "https://www.behance.net/search/projects?search=banking%20app%20concept", "expect": "reject", "why": "Concept work search page" },
+    { "url": "https://www.linkedin.com/posts/example", "expect": "reject", "why": "No-scrape platform: must be blocked before fetching" },
+    { "url": "https://www.apple.com/newsroom/2020/06/apple-introduces-macos-big-sur-with-a-beautiful-new-design/", "expect": "review", "why": "Launch press release with some design detail" },
+    { "url": "https://duolingo.com/blog/duolingo-brand-refresh", "expect": "publish", "why": "Company rebrand write-up" }
+  ]
+}

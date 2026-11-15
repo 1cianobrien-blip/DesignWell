@@ -1,0 +1,30 @@
+name: Eval drafting agent
+
+# Manually score the labelled URL set (pipeline/eval/urls.json) to tune the quality rubric.
+on:
+  workflow_dispatch:
+    inputs:
+      discover:
+        description: "Also score a sample of freshly discovered URLs"
+        type: boolean
+        default: false
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run pipeline -- eval ${{ inputs.discover && '--discover' || '' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: pipeline/eval/results/
