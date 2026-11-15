@@ -232,7 +232,7 @@ export async function processTriaged(run: Run, limit = 40) {
     from candidates c left join sources s on s.id = c.source_id
     where (c.outcome = 'pending' and (c.stage = 'triage' or (c.submission_id is not null and c.stage = 'collected')))
        or (c.outcome = 'error' and c.attempts < 3 and c.updated_at < now() - interval '6 hours')
-    order by (c.submission_id is not null) desc, c.created_at asc
+    order by (c.submission_id is not null) desc, coalesce((c.triage->>'priority')::int, 5) desc, c.created_at desc
     limit ${limit}`;
   for (const c of rows) {
     run.itemsIn++;
@@ -247,6 +247,24 @@ export async function processTriaged(run: Run, limit = 40) {
       await sql`update candidates set attempts = attempts + 1, outcome = 'error', reason = ${String((e as Error).message).slice(0, 300)}, updated_at = now() where id = ${c.id}`;
     }
   }
+}
+
+/** How many drafts are left this week (Monday 00:00 UTC onwards) under the weekly limit. */
+export async function draftsLeftThisWeek(): Promise<number> {
+  const { weekly_draft_limit } = await getSettings();
+  const [{ n }] = await sql<{ n: number }[]>`
+    select count(*)::int as n from llm_calls
+    where purpose = 'draft' and run_id is not null and created_at >=(date_trunc('week', now() at time zone 'utc') at time zone 'utc')`;
+  return Math.max(0, weekly_draft_limit - n);
+}
+
+/** Kept items that were never chosen for drafting within 3 weeks are closed out (logged for the experiment). */
+export async function expireUnchosen(run: Run) {
+  const rows = await sql`
+    update candidates set outcome = 'skipped', stage = 'done', reason = 'not drafted: ranked below the weekly limit', updated_at = now()
+    where outcome = 'pending' and stage = 'triage' and created_at < now() - interval '21 days'
+    returning id`;
+  bump(run, "unchosen_expired", rows.length);
 }
 
 /** Insert a URL as a candidate (dedupe on canonical URL). Returns true if new. */

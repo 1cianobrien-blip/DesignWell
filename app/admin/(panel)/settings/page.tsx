@@ -1,12 +1,12 @@
 import { saveSettings } from "@/app/admin/actions";
 import { SmallButton } from "@/components/admin/bits";
-import { spentToday } from "@/lib/llm";
+import { spentThisMonth, spentToday } from "@/lib/llm";
 import { getSettings } from "@/lib/settings";
 
 const input = "h-9 w-28 rounded-btn border border-field-border bg-surface px-2.5 text-[14px] tabular-nums";
 
 export default async function SettingsPage() {
-  const [s, spent] = await Promise.all([getSettings(), spentToday()]);
+  const [s, spent, month] = await Promise.all([getSettings(), spentToday(), spentThisMonth()]);
   return (
     <div className="max-w-[640px]">
       <h1 className="text-[28px] font-bold tracking-[-0.04em] text-ink">Settings</h1>
@@ -37,9 +37,25 @@ export default async function SettingsPage() {
         </label>
         <label className="flex items-center justify-between gap-4">
           <span>
+            <b>Weekly draft limit</b>
+            <br />
+            <span className="text-muted-5">How many of the top-ranked items the weekly run drafts and scores. Drafting is the main cost (roughly $0.10 each).</span>
+          </span>
+          <input name="weekly_draft_limit" type="number" min={0} max={500} defaultValue={s.weekly_draft_limit} className={input} />
+        </label>
+        <label className="flex items-center justify-between gap-4">
+          <span>
+            <b>Monthly spending cap (USD)</b>
+            <br />
+            <span className="text-muted-5">Hard ceiling. All AI calls stop for the rest of the month once reached. $12 ≈ £10. Spent this month: ${month.toFixed(2)}.</span>
+          </span>
+          <input name="monthly_spend_cap_usd" type="number" step="0.5" min={0} defaultValue={s.monthly_spend_cap_usd} className={input} />
+        </label>
+        <label className="flex items-center justify-between gap-4">
+          <span>
             <b>Daily spending cap (USD)</b>
             <br />
-            <span className="text-muted-5">Pipeline runs stop once today's API spend reaches this. Spent today: ${spent.toFixed(3)}.</span>
+            <span className="text-muted-5">Stops a single bad day from using the month's budget. Spent today: ${spent.toFixed(3)}.</span>
           </span>
           <input name="daily_spend_cap_usd" type="number" step="0.5" min={0} defaultValue={s.daily_spend_cap_usd} className={input} />
         </label>

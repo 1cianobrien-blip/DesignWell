@@ -1,19 +1,20 @@
 name: Daily
 
-# Jobs sync for every company with an ATS, then snowball research for newly published companies.
+# Every day, cheaply: read feeds and Hacker News (free), triage new items with the cheap model
+# (pennies), sync design roles from job boards (free), and housekeeping.
 on:
   schedule:
     - cron: "43 5 * * *"
   workflow_dispatch:
 
 concurrency:
-  group: daily
+  group: pipeline
   cancel-in-progress: false
 
 jobs:
   daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 40
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -25,5 +26,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run pipeline -- jobs
-      - run: npm run pipeline -- snowball 15
+      - run: npm run db:migrate
+      - run: npm run pipeline -- daily

@@ -8,12 +8,16 @@ export type Settings = {
   source_pause_min_candidates: number;
   source_pause_max_reject_rate: number;
   pipeline_enabled: boolean;
+  weekly_draft_limit: number;
+  monthly_spend_cap_usd: number;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
   publish_threshold: 75,
   review_threshold: 55,
-  daily_spend_cap_usd: 5,
+  daily_spend_cap_usd: 4,
+  weekly_draft_limit: 20,
+  monthly_spend_cap_usd: 12,
   review_expiry_days: 14,
   source_pause_min_candidates: 15,
   source_pause_max_reject_rate: 0.9,

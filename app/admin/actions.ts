@@ -88,6 +88,10 @@ export async function saveSettings(form: FormData) {
   const review = num("review_threshold", 0, 100);
   const cap = num("daily_spend_cap_usd", 0, 1000);
   const expiry = num("review_expiry_days", 1, 90);
+  const weekly = num("weekly_draft_limit", 0, 500);
+  const monthly = num("monthly_spend_cap_usd", 0, 5000);
+  if (weekly !== null) await setSetting("weekly_draft_limit", Math.round(weekly));
+  if (monthly !== null) await setSetting("monthly_spend_cap_usd", monthly);
   if (publish !== null) await setSetting("publish_threshold", publish);
   if (review !== null) await setSetting("review_threshold", Math.min(review, publish ?? 100));
   if (cap !== null) await setSetting("daily_spend_cap_usd", cap);

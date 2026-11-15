@@ -1,5 +1,6 @@
 // DesignWell pipeline CLI.
-//   npm run pipeline -- run            collect + triage + process + maintenance (scheduled hourly)
+//   npm run pipeline -- daily          free sources + cheap triage + jobs sync + housekeeping (scheduled daily)
+//   npm run pipeline -- weekly         web searches + draft the top-ranked items up to the weekly limit + snowball (scheduled weekly)
 //   npm run pipeline -- collect | triage | process | maintenance
 //   npm run pipeline -- seed           first-run source setup (verifies feeds)
 //   npm run pipeline -- jobs           daily ATS sync
@@ -14,7 +15,7 @@ import { collectDue } from "./collect";
 import { draftFromUrl } from "./draft";
 import { syncJobs } from "./jobs";
 import { expireReviews, scoreSources } from "./maintenance";
-import { processTriaged, triagePending } from "./process";
+import { draftsLeftThisWeek, expireUnchosen, processTriaged, triagePending } from "./process";
 import { finishRun, recordError, startRun, type Run } from "./run";
 import { seedSources } from "./seed";
 import { snowball } from "./snowball";
@@ -87,21 +88,38 @@ async function evalSet(file: string, discover: boolean) {
 }
 
 const [cmd, ...args] = process.argv.slice(2);
-const NEEDS_LLM = ["run", "triage", "process", "snowball", "draft", "eval"];
+const NEEDS_LLM = ["daily", "weekly", "run", "triage", "process", "snowball", "draft", "eval"];
 if (NEEDS_LLM.includes(cmd) && !process.env.ANTHROPIC_API_KEY && !process.env.DW_ANTHROPIC_API_KEY) {
   console.error(`'${cmd}' needs ANTHROPIC_API_KEY (or DW_ANTHROPIC_API_KEY) to be set.`);
   process.exit(1);
 }
 try {
   switch (cmd) {
+    case "daily":
+      // Cheap work every day: read free sources (feeds, HN), triage with the cheap model, sync jobs, housekeeping.
+      await guarded("daily", async (run) => {
+        const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from sources`;
+        if (n === 0) await seedSources(run); // first run: the pipeline sets up its own sources
+        await collectDue(run, { types: ["rss", "api", "company_channel"] });
+        await triagePending(run);
+        await syncJobs(run);
+        await scoreSources(run);
+        await expireReviews(run);
+        await expireUnchosen(run);
+      });
+      break;
+    case "weekly":
     case "run":
+      // The paid work, once a week: web searches, then draft the highest-ranked items up to the weekly limit.
       await guarded("pipeline", async (run) => {
-        // First run: the pipeline sets up its own sources.
         const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from sources`;
         if (n === 0) await seedSources(run);
         await collectDue(run);
         await triagePending(run);
-        await processTriaged(run, Number(process.env.PROCESS_LIMIT ?? 40));
+        const left = await draftsLeftThisWeek();
+        run.stats.weekly_drafts_available = left;
+        if (left > 0) await processTriaged(run, left);
+        await snowball(run, 8);
         await scoreSources(run);
         await expireReviews(run);
       });
@@ -139,7 +157,7 @@ try {
       await evalSet(args.find((a) => !a.startsWith("--")) ?? "pipeline/eval/urls.json", args.includes("--discover"));
       break;
     default:
-      console.log("usage: pipeline <run|collect|triage|process|maintenance|seed|jobs|snowball|draft <url>|eval [file] [--discover]>");
+      console.log("usage: pipeline <daily|weekly|collect|triage|process|maintenance|seed|jobs|snowball|draft <url>|eval [file] [--discover]>");
   }
 } finally {
   await sql.end({ timeout: 5 });

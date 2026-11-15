@@ -7,18 +7,20 @@ The site runs itself: an autonomous pipeline finds design work across the web, w
 ## Architecture
 
 ```
-GitHub Actions (hourly)                          Vercel (Next.js App Router)
-  pipeline run                                     /            feed (featured first, type + tag filters)
-    collect   RSS/Atom, HN Algolia, web search     /work/[slug] entry → company card, roles
-    triage    claude-haiku-5-5, batched            /companies   index; /companies/[slug] timeline + roles
-    draft     claude-opus-5-5, structured output   /jobs        design roles at companies with work
-    resolve   website, logo, one-liner, ATS        /submit      URL submissions → same pipeline
-    validate  URL + thumbnail resolve, dedupe      /admin       dashboard, review, sources, settings
+GitHub Actions (daily, ~free)                    Vercel (Next.js App Router)
+  pipeline daily                                   /            feed (featured first, type + tag filters)
+    collect   RSS/Atom feeds, HN Algolia           /work/[slug] entry → company card, roles
+    triage    claude-haiku-5-5, ranks 0–10         /companies   index; /companies/[slug] timeline + roles
+    jobs      Greenhouse / Lever / Ashby           /jobs        design roles at companies with work
+    maintain  pause bad sources, expire reviews    /submit      URL submissions → same pipeline
+GitHub Actions (weekly, Mondays)                   /admin       dashboard, review, sources, settings
+  pipeline weekly
+    collect   paid web-search queries
+    draft     claude-opus-5-5 on the top-ranked items, up to the weekly draft limit
+    resolve   website, logo, one-liner, ATS
+    validate  URL + thumbnail resolve, dedupe
     gate      publish / review / reject
-    maintain  auto-pause bad sources, expire reviews
-GitHub Actions (daily)
-  jobs        Greenhouse / Lever / Ashby → design roles only
-  snowball    find each new company's own design channels
+    snowball  find each new company's own design channels
                          ↘          ↙
                      Supabase Postgres (+ Auth for /admin)
 ```
@@ -30,6 +32,16 @@ GitHub Actions (daily)
 ### Quality score
 
 The drafting model rates four criteria from 0 to 10, each with a note citing the source: real work, decisions shown, usefulness to designers, and substance. Code computes recency from the date and combines everything into a 0–100 score with weights 20/30/25/15/10, plus hard caps (not company work ≤ 20, not real work ≤ 40, thin content ≤ 50, red flags −5 each). Tune the weights in `pipeline/draft.ts → rubricScore` and the thresholds in `/admin/settings` (start: publish ≥ 75, review 55–74).
+
+### Running cost (about £10 a month at most)
+
+Drafting with Opus is the main cost, at roughly $0.08–0.12 per item. Everything that runs daily is free or nearly so: feeds, Hacker News and job boards cost nothing, and Haiku triage costs pennies. Three limits keep spending down:
+
+- **Weekly draft limit** (default 20): only the highest-ranked candidates are drafted, giving about $2–3 a week.
+- **Monthly cap** (default $12, about £10): all AI calls stop for the rest of the month once it's reached.
+- **Daily cap** (default $4): stops one bad run from using the whole month's budget.
+
+All three are adjustable in `/admin/settings`. For a cheaper setup, set `MODEL_DRAFT=claude-sonnet-5-5` (about half the cost) or `claude-haiku-5-5` (about 40 times cheaper, but check with the eval first). Hosting fits the Supabase, Vercel Hobby and GitHub Actions free tiers while the repo is public.
 
 ### Guardrails
 
@@ -44,7 +56,7 @@ The drafting model rates four criteria from 0 to 10, each with a note citing the
 
 1. **Supabase**: create a project. Apply the migrations with `DATABASE_URL=... npm run db:migrate` (or `supabase db push`). In Auth, enable email sign-in and add your site URL plus `/admin/auth/callback` to the redirect URLs. Create your admin user (Auth → Users → Invite), because sign-in doesn't create users.
 2. **Vercel**: import the repo and set `DATABASE_URL` (transaction pooler URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ADMIN_EMAILS`, `SITE_URL` and `SUBMISSION_SALT`.
-3. **GitHub Actions**: add the secrets `DATABASE_URL` and `ANTHROPIC_API_KEY`, and the variable `SITE_URL`. The hourly `Pipeline` workflow seeds its own sources on the first run, verifying every feed before adding it.
+3. **GitHub Actions**: add the secrets `DATABASE_URL` and `ANTHROPIC_API_KEY`, and the variable `SITE_URL`. The first `Daily` run seeds the pipeline's own sources, checking every feed before adding it. The `Weekly pipeline` workflow drafts and publishes each Monday. Both can also be started by hand from the Actions tab.
 4. **Tune before you let it run**: run the `Eval drafting agent` workflow (or `npm run pipeline -- eval`) over `pipeline/eval/urls.json`, check where scores land, then adjust the weights and thresholds.
 
 ### Local development

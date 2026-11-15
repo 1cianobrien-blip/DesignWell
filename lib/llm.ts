@@ -40,8 +40,9 @@ export class SpendCapReached extends Error {
   constructor(
     public spent: number,
     public cap: number,
+    public period: "daily" | "monthly" = "daily",
   ) {
-    super(`Daily spend cap reached: $${spent.toFixed(2)} of $${cap.toFixed(2)}`);
+    super(`${period === "daily" ? "Daily" : "Monthly"} spend cap reached: $${spent.toFixed(2)} of $${cap.toFixed(2)}`);
   }
 }
 
@@ -52,10 +53,20 @@ export async function spentToday(): Promise<number> {
   return Number(r.total);
 }
 
+/** Spend since the start of the current calendar month (UTC). */
+export async function spentThisMonth(): Promise<number> {
+  const [r] = await sql<{ total: string }[]>`
+    select coalesce(sum(cost), 0) as total from llm_calls
+    where created_at >= (date_trunc('month', now() at time zone 'utc') at time zone 'utc')`;
+  return Number(r.total);
+}
+
 export async function assertBudget(): Promise<void> {
-  const { daily_spend_cap_usd } = await getSettings();
-  const spent = await spentToday();
-  if (spent >= daily_spend_cap_usd) throw new SpendCapReached(spent, daily_spend_cap_usd);
+  const { daily_spend_cap_usd, monthly_spend_cap_usd } = await getSettings();
+  const month = await spentThisMonth();
+  if (month >= monthly_spend_cap_usd) throw new SpendCapReached(month, monthly_spend_cap_usd, "monthly");
+  const day = await spentToday();
+  if (day >= daily_spend_cap_usd) throw new SpendCapReached(day, daily_spend_cap_usd, "daily");
 }
 
 type Usage = {

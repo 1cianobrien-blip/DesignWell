@@ -45,5 +45,5 @@ export async function submitUrl(_prev: SubmitState, form: FormData): Promise<Sub
     return { ok: true, message: "Thanks! We've already looked at this one." };
   }
   await addCandidate({ url: url.toString(), title: note, snippet: note, submissionId: sub.id });
-  return { ok: true, message: "Thanks! It's in the queue. If it passes our quality checks it will appear on DesignWell within a few hours." };
+  return { ok: true, message: "Thanks! It's in the queue. If it passes our quality checks it will appear on DesignWell with this week's picks." };
 }

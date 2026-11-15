@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Badge, Panel, Stat } from "@/components/admin/bits";
 import { StackedBars } from "@/components/admin/charts";
 import { candidatesByDay, costByDay, headline, recentRuns, topSources } from "@/lib/admin-queries";
-import { spentToday } from "@/lib/llm";
+import { spentThisMonth, spentToday } from "@/lib/llm";
+import { draftsLeftThisWeek } from "@/pipeline/process";
 import { getSettings } from "@/lib/settings";
 
 // Categorical slots 1-4 from the validated reference palette, in fixed order.
@@ -17,7 +18,17 @@ function ago(d: Date | null) {
 }
 
 export default async function Dashboard() {
-  const [h, days, costs, sources, runs, spent, settings] = await Promise.all([headline(), candidatesByDay(30), costByDay(30), topSources(15), recentRuns(10), spentToday(), getSettings()]);
+  const [h, days, costs, sources, runs, spent, month, draftsLeft, settings] = await Promise.all([
+    headline(),
+    candidatesByDay(30),
+    costByDay(30),
+    topSources(15),
+    recentRuns(10),
+    spentToday(),
+    spentThisMonth(),
+    draftsLeftThisWeek(),
+    getSettings(),
+  ]);
   const outcomeData = days.map((d) => ({ day: d.day, published: d.published, review: d.review, rejected: d.rejected + d.discarded, other: d.pending + d.other }));
   const totals = days.reduce((a, d) => ({ found: a.found + d.found, published: a.published + d.published, review: a.review + d.review }), { found: 0, published: 0, review: 0 });
   const rate = totals.found ? Math.round((totals.published / totals.found) * 1000) / 10 : 0;
@@ -46,7 +57,7 @@ export default async function Dashboard() {
         <Stat label="Found, last 7 days" value={h.found_7d} sub={`${rate}% published over 30 days`} />
         <Stat label="Median age at publish" value={h.median_age_days === null ? "–" : `${h.median_age_days.toFixed(1)}d`} sub="Freshness, last 14 days" />
         <Stat label="Review queue" value={<Link href="/admin/review">{h.review_queue}</Link>} sub={`Expires after ${settings.review_expiry_days} days`} />
-        <Stat label="Spend today" value={`$${spent.toFixed(2)}`} sub={`Cap $${settings.daily_spend_cap_usd} · 7d $${h.cost_7d.toFixed(2)}`} />
+        <Stat label="Spend this month" value={`$${month.toFixed(2)}`} sub={`Cap $${settings.monthly_spend_cap_usd} · today $${spent.toFixed(2)} · ${draftsLeft} drafts left this week`} />
         <Stat label="Companies · roles" value={`${h.companies} · ${h.open_roles}`} sub={`${h.sources_active} active sources, ${h.sources_paused} paused`} />
       </div>
 

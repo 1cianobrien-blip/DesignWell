@@ -34,7 +34,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ t
       <Section className="!pt-14 !pb-14 lg:!pt-20 lg:!pb-16">
         <Container>
           <h1 className="t-hero max-w-[620px] text-ink">See the design work happening inside companies</h1>
-          <p className="t-sub mt-5 max-w-[520px]">Case studies, rebrands, launches and talks from in-house design teams, found fresh every day.</p>
+          <p className="t-sub mt-5 max-w-[520px]">Case studies, rebrands, launches and talks from in-house design teams. New picks every week.</p>
           <div className="mt-8 flex flex-wrap gap-2">
             <Button href="/submit">Submit work</Button>
             <Button href="/jobs" variant="secondary">

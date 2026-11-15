@@ -20,7 +20,8 @@ export type Item = { url: string; title: string; snippet?: string; publishedAt?:
 
 const MAX_AGE_DAYS = Number(process.env.COLLECT_MAX_AGE_DAYS ?? 45);
 // How often each source type is checked.
-const INTERVAL_HOURS: Record<Source["type"], number> = { rss: 6, api: 6, company_channel: 12, search_query: 24 };
+// Feeds and HN are free to read, so they're checked on every daily run; paid web searches run weekly.
+const INTERVAL_HOURS: Record<Source["type"], number> = { rss: 20, api: 20, company_channel: 20, search_query: 160 };
 
 const xml = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", textNodeName: "#text", processEntities: true });
 
