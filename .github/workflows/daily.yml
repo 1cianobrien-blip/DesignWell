@@ -1,0 +1,30 @@
+name: Daily
+
+# Every day, cheaply: read feeds and Hacker News (free), triage new items with the cheap model
+# (pennies), sync design roles from job boards (free), and housekeeping.
+on:
+  schedule:
+    - cron: "43 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run pipeline -- daily

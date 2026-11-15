@@ -1,0 +1,34 @@
+name: Weekly pipeline
+
+# Once a week: paid web searches, then draft + score the highest-ranked candidates up to the weekly
+# draft limit, publish what passes the quality gate, and research newly published companies.
+on:
+  schedule:
+    - cron: "23 6 * * 1" # Mondays 06:23 UTC
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "pipeline command (weekly, daily, collect, triage, process, seed, snowball, jobs, maintenance)"
+        default: weekly
+
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run pipeline -- ${{ github.event.inputs.command || 'weekly' }}
